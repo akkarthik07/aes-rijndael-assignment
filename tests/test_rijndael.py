@@ -8,8 +8,10 @@ import aes as py_aes
 AES_BLOCK_SIZE_128 = 0
 ByteArray16 = ctypes.c_ubyte * 16
 
+# argtypes tells ctypes how to convert the arguments we pass to the C functions into the appropriate C types. 
 rijndael.add_round_key.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
 rijndael.sub_bytes.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
+rijndael.shift_rows.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
 
 # test helpers
 def rand_block():
@@ -65,7 +67,31 @@ def test_sub_bytes():
         print(f"Test {i+1} PASSED")
     print("sub_bytes: All tests passed!")
 
+# test shift_rows
+def test_shift_rows():
+    print("Testing shift_rows...")
+    for i in range(3):
+        block_data = rand_block()
+        
+        block = ByteArray16(*block_data)
+        rijndael.shift_rows(block, AES_BLOCK_SIZE_128)
+        result = bytes(block)
+
+        py_block = [list(block_data[r*4:(r+1)*4]) for r in range(4)]
+        py_aes.shift_rows(py_block)
+        expected = bytes([py_block[r][c] for r in range(4) for c in range(4)])
+
+        assert result == expected, (
+            f"Test {i+1} FAILED\n"
+            f" Input:     {list(block_data)}\n"
+            f" Expected:  {list(expected)}\n"
+            f" Got:       {list(result)}"
+        )
+        print(f"Test {i+1} PASSED")
+    print("shift_rows: All tests passed!")
+
 # Run the tests
 if __name__ == "__main__":
     test_add_round_key()
     test_sub_bytes()
+    test_shift_rows()

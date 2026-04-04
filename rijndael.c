@@ -99,6 +99,10 @@ char *message(char n) {
 /*
  * Operations used when encrypting a block
  */
+
+/*
+  sub_bytes: Each byte in the input block is replaced by the corresponding byte in the S-box.
+ */
 void sub_bytes(unsigned char *block, aes_block_size_t block_size) {
   // TODO: Implement me!
   size_t num_bytes = block_size_to_bytes(block_size);
@@ -107,8 +111,35 @@ void sub_bytes(unsigned char *block, aes_block_size_t block_size) {
   }
 }
 
+/*
+  shift_rows: shift each row of the block to the left by a certain amount, depending on the row number. 
+  The first row is not shifted, the second row is shifted by 1 byte, the third row is shifted by 2 bytes and the fourth row is shifted by 3 bytes. 
+  The shifting is circular, so bytes that are shifted out on the left are reintroduced on the right.
+ */
+
 void shift_rows(unsigned char *block, aes_block_size_t block_size) {
   // TODO: Implement me!
+  int cols;
+  switch (block_size) {
+    case AES_BLOCK_128:
+      cols = 4;
+      break;
+    case AES_BLOCK_256:
+      cols = 8;
+      break;
+    case AES_BLOCK_512:
+      cols = 16;
+      break;
+    default:
+      exit(1);
+  }
+  for (int row = 1; row < 4; row++) {
+    unsigned char temp[16];
+    for (int col = 0; col < cols; col++) 
+      temp[col] = block[row * cols + ((col + row) % cols)];
+    for (int col = 0; col < cols; col++) 
+      block[row * cols + col] = temp[col];
+  }
 }
 
 void mix_columns(unsigned char *block, aes_block_size_t block_size) {
