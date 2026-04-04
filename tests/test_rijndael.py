@@ -1,9 +1,9 @@
 import ctypes, random, sys, os
-import aes as py_aes
 
 rijndael = ctypes.CDLL('./rijndael.so')
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'aes'))
+import aes as py_aes
 
 AES_BLOCK_SIZE_128 = 0
 ByteArray16 = ctypes.c_ubyte * 16
@@ -51,9 +51,10 @@ def test_sub_bytes():
         rijndael.sub_bytes(block, AES_BLOCK_SIZE_128)
         result = bytes(block)
 
-        py_block = list(block_data)
+        # python version as boppreh expects the block to be a 4x4 matrix of bytes, so we need to convert it before calling sub_bytes
+        py_block = [list(block_data[r*4:(r+1)*4]) for r in range(4)]
         py_aes.sub_bytes(py_block)
-        expected = bytes(py_block)
+        expected = bytes([py_block[r][c] for r in range(4) for c in range(4)])
 
         assert result == expected, (
             f"Test {i+1} FAILED\n"
