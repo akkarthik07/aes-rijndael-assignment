@@ -1,6 +1,9 @@
 /*
- * TODO: Add your name and student number here, along with
- *       a brief description of this code.
+ * Author: Karthik - Student number: A00046404
+ * Implementation of the AES (Rijndael) block cipher. Supports 128, 256 and 512-bit block sizes. 
+ * Exposes two public functions via rijndael.h: 
+ *  - aes_encrypt_block: takes a plaintext block, a key and a block size, and returns the corresponding ciphertext block
+ *  - aes_decrypt_block: takes a ciphertext block, a key and a block size, and returns the corresponding plaintext block
  */
 
 #include <stdio.h>
@@ -89,6 +92,10 @@ void add_round_key(unsigned char *block,
                    unsigned char *round_key,
                    aes_block_size_t block_size) {
   // TODO: Implement me!
+  size_t num_bytes = block_size_to_bytes(block_size);
+  for (size_t i = 0; i < num_bytes; i++) {
+    block[i] ^= round_key[i];
+  }
 }
 
 /*
