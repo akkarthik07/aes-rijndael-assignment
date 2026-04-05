@@ -136,9 +136,9 @@ void shift_rows(unsigned char *block, aes_block_size_t block_size) {
   for (int row = 1; row < 4; row++) {
     unsigned char temp[16];
     for (int col = 0; col < cols; col++) 
-      temp[col] = block[row * cols + ((col + row) % cols)];
+      temp[col] = block[((col + row) % cols) * 4 + row];
     for (int col = 0; col < cols; col++) 
-      block[row * cols + col] = temp[col];
+      block[col * 4 + row] = temp[col];
   }
 }
 

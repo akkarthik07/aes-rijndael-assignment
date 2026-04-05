@@ -41,7 +41,7 @@ def test_add_round_key():
             f" Got:       {list(result)}"
         )
         print(f"Test {i+1} PASSED")
-    print("add_round_key: All tests passed!")
+    print("add_round_key: All tests passed!\n" + "-" * 38 + "\n")
 
 # test sub_bytes
 def test_sub_bytes():
@@ -65,7 +65,7 @@ def test_sub_bytes():
             f" Got:       {list(result)}"
         )
         print(f"Test {i+1} PASSED")
-    print("sub_bytes: All tests passed!")
+    print("sub_bytes: All tests passed!\n" + "-" * 38 + "\n")
 
 # test shift_rows
 def test_shift_rows():
@@ -88,7 +88,7 @@ def test_shift_rows():
             f" Got:       {list(result)}"
         )
         print(f"Test {i+1} PASSED")
-    print("shift_rows: All tests passed!")
+    print("shift_rows: All tests passed!\n" + "-" * 38 + "\n")
 
 # Run the tests
 if __name__ == "__main__":
