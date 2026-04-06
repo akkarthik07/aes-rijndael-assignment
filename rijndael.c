@@ -54,6 +54,13 @@ static const unsigned char sbox[256] = {
   0x41, 0x99, 0x2d, 0x0f, 0xb0, 0x54, 0xbb, 0x16
 };
 
+/*
+  xtime(): multiply by 2 in GF(2^8). It shifts the input to the left by one bit, and if the most significant bit of the input is 1, it XORs the result with 0x1b.
+*/
+static unsigned char xtime(unsigned char x) {
+  return (x & 0x80) ? ((x << 1) ^ 0x1b) : (x << 1);
+}
+
 size_t block_size_to_bytes(aes_block_size_t block_size) {
   switch (block_size) {
   case AES_BLOCK_128:
@@ -116,7 +123,6 @@ void sub_bytes(unsigned char *block, aes_block_size_t block_size) {
   The first row is not shifted, the second row is shifted by 1 byte, the third row is shifted by 2 bytes and the fourth row is shifted by 3 bytes. 
   The shifting is circular, so bytes that are shifted out on the left are reintroduced on the right.
  */
-
 void shift_rows(unsigned char *block, aes_block_size_t block_size) {
   // TODO: Implement me!
   int cols;
@@ -142,8 +148,40 @@ void shift_rows(unsigned char *block, aes_block_size_t block_size) {
   }
 }
 
+/* 
+  mix_columns: multiplies each column by the following fixed matrix in GF(2^8):
+  [ 2 3 1 1 ]
+  [ 1 2 3 1 ]
+  [ 1 1 2 3 ]
+  [ 3 1 1 2 ]
+  Uses xtime() to multiply by 2 and xtime(a)^a to multiply by 3.
+ */
 void mix_columns(unsigned char *block, aes_block_size_t block_size) {
   // TODO: Implement me!
+  int cols;
+  switch (block_size) {
+    case AES_BLOCK_128:
+      cols = 4;
+      break;
+    case AES_BLOCK_256:
+      cols = 8;
+      break;
+    case AES_BLOCK_512:
+      cols = 16;
+      break;
+    default:
+      exit(1);
+  }
+  for (int c = 0; c < cols; c++) {
+    unsigned char s0 = block[c * 4 + 0];
+    unsigned char s1 = block[c * 4 + 1];
+    unsigned char s2 = block[c * 4 + 2];
+    unsigned char s3 = block[c * 4 + 3];
+    block[c * 4 + 0] = xtime(s0) ^ (xtime(s1) ^ s1) ^ s2 ^ s3;
+    block[c * 4 + 1] = s0 ^ xtime(s1) ^ (xtime(s2) ^ s2) ^ s3;
+    block[c * 4 + 2] = s0 ^ s1 ^ xtime(s2) ^ (xtime(s3) ^ s3);
+    block[c * 4 + 3] = (xtime(s0) ^ s0) ^ s1 ^ s2 ^ xtime(s3);
+  }
 }
 
 /*

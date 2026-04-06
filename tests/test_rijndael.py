@@ -12,6 +12,7 @@ ByteArray16 = ctypes.c_ubyte * 16
 rijndael.add_round_key.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
 rijndael.sub_bytes.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
 rijndael.shift_rows.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
+rijndael.mix_columns.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
 
 # test helpers
 def rand_block():
@@ -90,8 +91,32 @@ def test_shift_rows():
         print(f"Test {i+1} PASSED")
     print("shift_rows: All tests passed!\n" + "-" * 38 + "\n")
 
+# test mix_columns
+def test_mix_columns():
+    print("Testing mix_columns...")
+    for i in range(3):
+        block_data = rand_block()
+
+        block = ByteArray16(*block_data)
+        rijndael.mix_columns(block, AES_BLOCK_SIZE_128)
+        result = bytes(block)
+
+        py_block = [[block_data[c * 4 + r] for c in range(4)] for r in range(4)]
+        py_aes.mix_columns(py_block)
+        expected = bytes([py_block[r][c] for r in range(4) for c in range(4)])
+
+        assert result == expected, (
+            f"Test {i+1} FAILED\n"
+            f" Input:     {list(block_data)}\n"
+            f" Expected:  {list(expected)}\n"
+            f" Got:       {list(result)}"
+        )
+        print(f"Test {i+1} PASSED")
+    print("mix_columns: All tests passed!\n" + "-" * 38 + "\n")
+
 # Run the tests
 if __name__ == "__main__":
     test_add_round_key()
     test_sub_bytes()
     test_shift_rows()
+    test_mix_columns()
