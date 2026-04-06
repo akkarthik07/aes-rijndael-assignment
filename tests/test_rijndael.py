@@ -94,6 +94,23 @@ def test_shift_rows():
 # test mix_columns
 def test_mix_columns():
     print("Testing mix_columns...")
+
+    def xtime(x):
+        return ((x << 1) ^ 0x1b) & 0xff if (x & 0x80) else (x << 1) & 0xff
+
+    def py_mix_columns(block_data):
+        result = list(block_data)
+        for c in range(4):
+            s0 = block_data[c * 4 + 0]
+            s1 = block_data[c * 4 + 1]
+            s2 = block_data[c * 4 + 2]
+            s3 = block_data[c * 4 + 3]
+            result[c * 4 + 0] = xtime(s0) ^ (xtime(s1) ^ s1) ^ s2 ^ s3
+            result[c * 4 + 1] = s0 ^ xtime(s1) ^ (xtime(s2) ^ s2) ^ s3
+            result[c * 4 + 2] = s0 ^ s1 ^ xtime(s2) ^ (xtime(s3) ^ s3)
+            result[c * 4 + 3] = (xtime(s0) ^ s0) ^ s1 ^ s2 ^ xtime(s3)
+        return result
+    
     for i in range(3):
         block_data = rand_block()
 
@@ -101,9 +118,8 @@ def test_mix_columns():
         rijndael.mix_columns(block, AES_BLOCK_SIZE_128)
         result = bytes(block)
 
-        py_block = [[block_data[c * 4 + r] for c in range(4)] for r in range(4)]
-        py_aes.mix_columns(py_block)
-        expected = bytes([py_block[r][c] for r in range(4) for c in range(4)])
+        expected = bytes(py_mix_columns(block_data))
+
 
         assert result == expected, (
             f"Test {i+1} FAILED\n"
