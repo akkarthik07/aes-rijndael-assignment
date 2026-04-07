@@ -266,6 +266,36 @@ void invert_shift_rows(unsigned char *block, aes_block_size_t block_size) {
 
 void invert_mix_columns(unsigned char *block, aes_block_size_t block_size) {
   // TODO: Implement me!
+  int cols;
+  switch (block_size) {
+    case AES_BLOCK_128:
+      cols = 4;
+      break;
+    case AES_BLOCK_256:
+      cols = 8;
+      break;
+    case AES_BLOCK_512:
+      cols = 16;
+      break;
+    default:
+      exit(1);
+  }
+  for (int c = 0; c < cols; c++) {
+    unsigned char s0 = block[c * 4 + 0];
+    unsigned char s1 = block[c * 4 + 1];
+    unsigned char s2 = block[c * 4 + 2];
+    unsigned char s3 = block[c * 4 + 3];
+    unsigned char x2_0 = xtime(s0), x2_1 = xtime(s1);
+    unsigned char x2_2 = xtime(s2), x2_3 = xtime(s3);
+    unsigned char x4_0 = xtime(x2_0), x4_1 = xtime(x2_1);
+    unsigned char x4_2 = xtime(x2_2), x4_3 = xtime(x2_3);
+    unsigned char x8_0 = xtime(x4_0), x8_1 = xtime(x4_1);
+    unsigned char x8_2 = xtime(x4_2), x8_3 = xtime(x4_3);
+    block[c * 4 + 0] = (x8_0 ^ x4_0 ^ x2_0) ^ (x8_1 ^ x2_1 ^ s1) ^ (x8_2 ^ x4_2 ^ s2) ^ (x8_3 ^ s3);
+    block[c * 4 + 1] = (x8_0 ^ s0) ^ (x8_1 ^ x4_1 ^ x2_1) ^ (x8_1 ^ x2_1 ^ s2) ^ (x8_3 ^ x4_3 ^ s3);
+    block[c * 4 + 2] = (x8_0 ^ x4_0 ^ s0) ^ (x8_1 ^ s1) ^ (x8_2 ^ x4_2 ^ x2_2) ^ (x8_3 ^ x2_3 ^ s3);
+    block[c * 4 + 3] = (x8_0 ^ x2_0 ^ s0) ^ (x8_1 ^ x4_1 ^ s1) ^ (x8_2 ^ s2) ^ (x8_3 ^ x4_3 ^ x2_3);
+  }
 }
 
 /*

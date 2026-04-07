@@ -15,6 +15,7 @@ rijndael.shift_rows.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
 rijndael.mix_columns.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
 rijndael.invert_sub_bytes.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
 rijndael.invert_shift_rows.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
+rijndael.invert_mix_columns.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
 
 # test helpers
 def rand_block():
@@ -177,6 +178,49 @@ def test_invert_shift_rows():
         print(f"Test {i+1} PASSED")
     print("invert_shift_rows: All tests passed!\n" + "-" * 38 + "\n")
 
+# test invert_mix_columns
+def test_invert_mix_columns():
+    print("Testing invert_mix_columns...")
+
+    def xtime(x):
+        return ((x << 1) ^ 0x1b) & 0xff if (x & 0x80) else (x << 1) & 0xff
+    
+    def py_inv_mix_columns(block_data):
+        result = list(block_data)
+        for c in range(4):
+            s0 = block_data[c * 4 + 0]
+            s1 = block_data[c * 4 + 1]
+            s2 = block_data[c * 4 + 2]
+            s3 = block_data[c * 4 + 3]
+            x2_0 = xtime(s0); x2_1 = xtime(s1); 
+            x2_2 = xtime(s2); x2_3 = xtime(s3);
+            x4_0=xtime(x2_0);  x4_1=xtime(x2_1)
+            x4_2=xtime(x2_2);  x4_3=xtime(x2_3)
+            x8_0=xtime(x4_0);  x8_1=xtime(x4_1)
+            x8_2=xtime(x4_2);  x8_3=xtime(x4_3)
+            result[c*4+0] = (x8_0^x4_0^x2_0)^(x8_1^x2_1^s1)^(x8_2^x4_2^s2)^(x8_3^s3)
+            result[c*4+1] = (x8_0^s0)^(x8_1^x4_1^x2_1)^(x8_2^x2_2^s2)^(x8_3^x4_3^s3)
+            result[c*4+2] = (x8_0^x4_0^s0)^(x8_1^s1)^(x8_2^x4_2^x2_2)^(x8_3^x2_3^s3)
+            result[c*4+3] = (x8_0^x2_0^s0)^(x8_1^x4_1^s1)^(x8_2^s2)^(x8_3^x4_3^x2_3)
+        return result
+    for i in range(3):
+        block_data = rand_block()
+
+        block = ByteArray16(*block_data)
+        rijndael.invert_mix_columns(block, AES_BLOCK_SIZE_128)
+        result = bytes(block)
+
+        expected = bytes(py_inv_mix_columns(block_data))
+
+        assert result == expected, (
+            f"Test {i+1} FAILED\n"
+            f" Input:     {list(block_data)}\n"
+            f" Expected:  {list(expected)}\n"
+            f" Got:       {list(result)}"
+        )
+        print(f"Test {i+1} PASSED")
+    print("invert_mix_columns: All tests passed!\n" + "-" * 38 + "\n")
+
 # Run the tests
 if __name__ == "__main__":
     test_add_round_key()
@@ -185,3 +229,4 @@ if __name__ == "__main__":
     test_mix_columns()
     test_invert_sub_bytes()
     test_invert_shift_rows()
+    test_invert_mix_columns()
