@@ -264,6 +264,13 @@ void invert_shift_rows(unsigned char *block, aes_block_size_t block_size) {
   }
 }
 
+/*
+  invert_mix_columns: multiplies each column by the following fixed matrix in GF(2^8):
+  [ 14 11 13 9 ]
+  [ 9 14 11 13 ]
+  [ 13 9 14 11 ]
+  [ 11 13 9 14 ]
+ */
 void invert_mix_columns(unsigned char *block, aes_block_size_t block_size) {
   // TODO: Implement me!
   int cols;
@@ -292,7 +299,7 @@ void invert_mix_columns(unsigned char *block, aes_block_size_t block_size) {
     unsigned char x8_0 = xtime(x4_0), x8_1 = xtime(x4_1);
     unsigned char x8_2 = xtime(x4_2), x8_3 = xtime(x4_3);
     block[c * 4 + 0] = (x8_0 ^ x4_0 ^ x2_0) ^ (x8_1 ^ x2_1 ^ s1) ^ (x8_2 ^ x4_2 ^ s2) ^ (x8_3 ^ s3);
-    block[c * 4 + 1] = (x8_0 ^ s0) ^ (x8_1 ^ x4_1 ^ x2_1) ^ (x8_1 ^ x2_1 ^ s2) ^ (x8_3 ^ x4_3 ^ s3);
+    block[c * 4 + 1] = (x8_0 ^ s0) ^ (x8_1 ^ x4_1 ^ x2_1) ^ (x8_2 ^ x2_2 ^ s2) ^ (x8_3 ^ x4_3 ^ s3);
     block[c * 4 + 2] = (x8_0 ^ x4_0 ^ s0) ^ (x8_1 ^ s1) ^ (x8_2 ^ x4_2 ^ x2_2) ^ (x8_3 ^ x2_3 ^ s3);
     block[c * 4 + 3] = (x8_0 ^ x2_0 ^ s0) ^ (x8_1 ^ x4_1 ^ s1) ^ (x8_2 ^ s2) ^ (x8_3 ^ x4_3 ^ x2_3);
   }
