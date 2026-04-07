@@ -13,6 +13,7 @@ rijndael.add_round_key.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTE
 rijndael.sub_bytes.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
 rijndael.shift_rows.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
 rijndael.mix_columns.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
+rijndael.invert_sub_bytes.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
 
 # test helpers
 def rand_block():
@@ -130,9 +131,33 @@ def test_mix_columns():
         print(f"Test {i+1} PASSED")
     print("mix_columns: All tests passed!\n" + "-" * 38 + "\n")
 
+# test invert_sub_bytes
+def test_invert_sub_bytes():
+    print("Testing invert_sub_bytes...")
+    for i in range(3):
+        block_data = rand_block()
+
+        block = ByteArray16(*block_data)
+        rijndael.invert_sub_bytes(block, AES_BLOCK_SIZE_128)
+        result = bytes(block)
+
+        py_block = [list(block_data[r*4:(r+1)*4]) for r in range(4)]
+        py_aes.inv_sub_bytes(py_block)
+        expected = bytes([py_block[r][c] for r in range(4) for c in range(4)])
+
+        assert result == expected, (
+            f"Test {i+1} FAILED\n"
+            f" Input:     {list(block_data)}\n"
+            f" Expected:  {list(expected)}\n"
+            f" Got:       {list(result)}"
+        )
+        print(f"Test {i+1} PASSED")
+    print("invert_sub_bytes: All tests passed!\n" + "-" * 38 + "\n")
+
 # Run the tests
 if __name__ == "__main__":
     test_add_round_key()
     test_sub_bytes()
     test_shift_rows()
     test_mix_columns()
+    test_invert_sub_bytes()
