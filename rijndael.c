@@ -89,6 +89,10 @@ static const unsigned char inv_sbox[256] = {
   0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d
 };
 
+static const unsigned char round_constants[11] = {
+  0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
+};
+
 /*
   xtime(): multiply by 2 in GF(2^8). It shifts the input to the left by one bit, and if the most significant bit of the input is 1, it XORs the result with 0x1b.
 */
@@ -325,7 +329,41 @@ void add_round_key(unsigned char *block,
  */
 unsigned char *expand_key(unsigned char *cipher_key, aes_block_size_t block_size) {
   // TODO: Implement me!
-  return 0;
+  int key_words = 4;
+  int total_num_of_words = 44;
+
+  unsigned char *round_keys = (unsigned char *)malloc(total_num_of_words * 4);
+  if (!round_keys) {
+    fprintf(stderr, "Memory allocation failed in expand_key\n");
+    exit(1);
+  }
+
+  /* copy original key into first 4 words */
+  memcpy(round_keys, cipher_key, key_words * 4);
+
+  for (int i = key_words; i < total_num_of_words; i++) {
+    unsigned char temp[4];
+    memcpy(temp, round_keys + (i - 1) * 4, 4);
+    if (i % key_words == 0) {
+      // Rotate the bytes in temp to the left
+      unsigned char t = temp[0];
+      temp[0] = temp[1];
+      temp[1] = temp[2];
+      temp[2] = temp[3];
+      temp[3] = t;
+      // Apply the S-box to each byte in temp
+      for (int j = 0; j < 4; j++) {
+        temp[j] = sbox[temp[j]];
+      }
+      // XOR the first byte of temp with the round constant
+      temp[0] ^= round_constants[i / key_words];
+    }
+    // New round key word is the XOR of temp and the word from 4 positions back
+    for (int j = 0; j < 4; j++) {
+      round_keys[i * 4 + j] = round_keys[(i - key_words) * 4 + j] ^ temp[j];
+    }
+  }
+  return round_keys;
 }
 
 /*
