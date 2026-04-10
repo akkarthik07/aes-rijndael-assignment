@@ -16,6 +16,10 @@ rijndael.mix_columns.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
 rijndael.invert_sub_bytes.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
 rijndael.invert_shift_rows.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
 rijndael.invert_mix_columns.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
+rijndael.aes_encrypt_block.restype = ctypes.POINTER(ctypes.c_ubyte)
+rijndael.aes_encrypt_block.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
+rijndael.aes_decrypt_block.restype = ctypes.POINTER(ctypes.c_ubyte)
+rijndael.aes_decrypt_block.argtypes = [ctypes.POINTER(ctypes.c_ubyte), ctypes.POINTER(ctypes.c_ubyte), ctypes.c_int]
 
 # test helpers
 def rand_block():
@@ -221,6 +225,48 @@ def test_invert_mix_columns():
         print(f"Test {i+1} PASSED")
     print("invert_mix_columns: All tests passed!\n" + "-" * 38 + "\n")
 
+# final end-to-end test of encryption and decryption
+def test_encrypt_decrypt():
+    print("Testing AES encryption and decryption...")
+    for i in range(3):
+        block_data = rand_block()
+        key_data = rand_block()
+
+        pt_bytes = bytes(block_data)
+        key_bytes = bytes(key_data)
+
+        # python reference implementation
+        expected_ct = py_aes.AES(key_bytes).encrypt_block(pt_bytes)
+
+        # C implementation
+        block = ByteArray16(*block_data)
+        key = ByteArray16(*key_data)
+        ct_ptr = rijndael.aes_encrypt_block(block, key, AES_BLOCK_SIZE_128)
+        result_ct = bytes(ct_ptr[:16])
+
+        assert result_ct == expected_ct, (
+            f"Encryption Test {i+1} FAILED\n"
+            f" Plaintext: {list(block_data)}\n"
+            f" Key:       {list(key_data)}\n"
+            f" Expected:  {list(expected_ct)}\n"
+            f" Got:       {list(result_ct)}"
+        )
+
+        # Now test decryption
+        ct_block = ByteArray16(*result_ct)
+        pt_ptr = rijndael.aes_decrypt_block(ct_block, key, AES_BLOCK_SIZE_128)
+        result_pt = bytes(pt_ptr[:16])
+
+        assert result_pt == pt_bytes, (
+            f"Decryption Test {i+1} FAILED\n"
+            f" Ciphertext: {list(result_ct)}\n"
+            f" Key:        {list(key_data)}\n"
+            f" Expected:   {list(pt_bytes)}\n"
+            f" Got:        {list(result_pt)}"
+        )
+        print(f"Test {i+1} PASSED")
+    print("AES encryption and decryption: All tests passed!\n" + "-" * 38 + "\n")
+
 # Run the tests
 if __name__ == "__main__":
     test_add_round_key()
@@ -230,3 +276,4 @@ if __name__ == "__main__":
     test_invert_sub_bytes()
     test_invert_shift_rows()
     test_invert_mix_columns()
+    test_encrypt_decrypt()
