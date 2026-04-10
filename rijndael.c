@@ -374,8 +374,33 @@ unsigned char *aes_encrypt_block(unsigned char *plaintext,
                                  unsigned char *key,
                                  aes_block_size_t block_size) {
   // TODO: Implement me!
-  unsigned char *output =
-      (unsigned char *)malloc(sizeof(unsigned char) * block_size_to_bytes(block_size));
+  unsigned char *output = (unsigned char *)malloc(sizeof(unsigned char) * block_size_to_bytes(block_size));
+  if (!output) {
+    fprintf(stderr, "Memory allocation failed in aes_encrypt_block\n");
+    exit(1);
+  }
+
+  memcpy(output, plaintext, block_size_to_bytes(block_size));
+
+  unsigned char *round_keys = expand_key(key, block_size);
+
+  /*Initial round for key addition*/
+  add_round_key(output, round_keys, block_size);
+
+  /*9 main rounds*/
+  for (int round = 1; round <= 9; round++) {
+    sub_bytes (output, block_size);
+    shift_rows (output, block_size);
+    mix_columns (output, block_size);
+    add_round_key (output, round_keys + round * 16, block_size);
+  }
+
+  /*Final round (no mix_columns)*/
+  sub_bytes (output, block_size);
+  shift_rows (output, block_size);
+  add_round_key (output, round_keys + 10 * 16, block_size);
+
+  free (round_keys);
   return output;
 }
 
@@ -383,7 +408,32 @@ unsigned char *aes_decrypt_block(unsigned char *ciphertext,
                                  unsigned char *key,
                                  aes_block_size_t block_size) {
   // TODO: Implement me!
-  unsigned char *output =
-      (unsigned char *)malloc(sizeof(unsigned char) * block_size_to_bytes(block_size));
+  unsigned char *output = (unsigned char *)malloc(sizeof(unsigned char) * block_size_to_bytes(block_size));
+  if (!output) {
+    fprintf(stderr, "Memory allocation failed in aes_decrypt_block\n");
+    exit(1);
+  }
+
+  memcpy (output, ciphertext, block_size_to_bytes(block_size));
+
+  unsigned char *round_keys = expand_key(key, block_size);
+
+  /*Initial round for key addition*/
+  add_round_key(output, round_keys + 10 * 16, block_size);
+  invert_shift_rows (output, block_size);
+  invert_sub_bytes (output, block_size);
+
+  /*Undo main rounds*/
+  for (int round = 9; round >= 1; round--) {
+    add_round_key (output, round_keys + round * 16, block_size);
+    invert_mix_columns (output, block_size);
+    invert_shift_rows (output, block_size);
+    invert_sub_bytes (output, block_size);
+  }
+
+  /*Undo initial round key addition*/
+  add_round_key(output, round_keys, block_size);
+
+  free(round_keys);
   return output;
 }
