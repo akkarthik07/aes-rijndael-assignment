@@ -9,15 +9,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-// TODO: Any other files you need to include should go here
 
 #include "rijndael.h"
 
-/*
+/*----------------------------------------------------------------------------------
  * AES S-box
  * A fixed 256-byte lookup table used by sub_bytes().
  * Each byte in the input block is replaced by the corresponding byte in the S-box.
- */
+ *----------------------------------------------------------------------------------*/
 
 static const unsigned char sbox[256] = {
   0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5,
@@ -93,9 +92,10 @@ static const unsigned char round_constants[11] = {
   0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
 };
 
-/*
-  xtime(): multiply by 2 in GF(2^8). It shifts the input to the left by one bit, and if the most significant bit of the input is 1, it XORs the result with 0x1b.
-*/
+/*----------------------------------------------------------------------------------
+  xtime(): multiply by 2 in GF(2^8). It shifts the input to the left by one bit, 
+  and if the most significant bit of the input is 1, it XORs the result with 0x1b.
+ *----------------------------------------------------------------------------------*/
 static unsigned char xtime(unsigned char x) {
   return (x & 0x80) ? ((x << 1) ^ 0x1b) : (x << 1);
 }
@@ -142,15 +142,14 @@ char *message(char n) {
   return output;
 }
 
-/*
+/*----------------------------------------------------------------------------------
  * Operations used when encrypting a block
- */
+ *----------------------------------------------------------------------------------/
 
 /*
   sub_bytes: Each byte in the input block is replaced by the corresponding byte in the S-box.
  */
 void sub_bytes(unsigned char *block, aes_block_size_t block_size) {
-  // TODO: Implement me!
   size_t num_bytes = block_size_to_bytes(block_size);
   for (size_t i = 0; i < num_bytes; i++) {
     block[i] = sbox[block[i]];
@@ -163,21 +162,8 @@ void sub_bytes(unsigned char *block, aes_block_size_t block_size) {
   The shifting is circular, so bytes that are shifted out on the left are reintroduced on the right.
  */
 void shift_rows(unsigned char *block, aes_block_size_t block_size) {
-  // TODO: Implement me!
-  int cols;
-  switch (block_size) {
-    case AES_BLOCK_128:
-      cols = 4;
-      break;
-    case AES_BLOCK_256:
-      cols = 8;
-      break;
-    case AES_BLOCK_512:
-      cols = 16;
-      break;
-    default:
-      exit(1);
-  }
+  int cols = (int)block_size_to_bytes(block_size) / 4;
+  
   for (int row = 1; row < 4; row++) {
     unsigned char temp[16];
     for (int col = 0; col < cols; col++) 
@@ -196,21 +182,8 @@ void shift_rows(unsigned char *block, aes_block_size_t block_size) {
   Uses xtime() to multiply by 2 and xtime(a)^a to multiply by 3.
  */
 void mix_columns(unsigned char *block, aes_block_size_t block_size) {
-  // TODO: Implement me!
-  int cols;
-  switch (block_size) {
-    case AES_BLOCK_128:
-      cols = 4;
-      break;
-    case AES_BLOCK_256:
-      cols = 8;
-      break;
-    case AES_BLOCK_512:
-      cols = 16;
-      break;
-    default:
-      exit(1);
-  }
+  int cols = (int)block_size_to_bytes(block_size) / 4;
+    
   for (int c = 0; c < cols; c++) {
     unsigned char s0 = block[c * 4 + 0];
     unsigned char s1 = block[c * 4 + 1];
@@ -223,15 +196,14 @@ void mix_columns(unsigned char *block, aes_block_size_t block_size) {
   }
 }
 
-/*
+/*-------------------------------------------------------------------------
  * Operations used when decrypting a block
- */
+ *-------------------------------------------------------------------------/
 
  /*
   invert_sub_bytes: Each byte in the input block is replaced by the corresponding byte in the inverse S-box.
  */
 void invert_sub_bytes(unsigned char *block, aes_block_size_t block_size) {
-  // TODO: Implement me!
   size_t num_bytes = block_size_to_bytes(block_size);
   for (size_t i = 0; i < num_bytes; i++) {
     block[i] = inv_sbox[block[i]];
@@ -244,21 +216,8 @@ void invert_sub_bytes(unsigned char *block, aes_block_size_t block_size) {
   The shifting is circular, so bytes that are shifted out on the right are reintroduced on the left.
 */
 void invert_shift_rows(unsigned char *block, aes_block_size_t block_size) {
-  // TODO: Implement me!
-  int cols;
-  switch (block_size) {
-    case AES_BLOCK_128:
-      cols = 4;
-      break;
-    case AES_BLOCK_256:
-      cols = 8;
-      break;
-    case AES_BLOCK_512:
-      cols = 16;
-      break;
-    default:
-      exit(1);
-  }
+  int cols = (int)block_size_to_bytes(block_size) / 4;
+
   for (int row = 1; row < 4; row++) {
     unsigned char temp[16];
     for (int col = 0; col < cols; col++) 
@@ -276,21 +235,8 @@ void invert_shift_rows(unsigned char *block, aes_block_size_t block_size) {
   [ 11 13 9 14 ]
  */
 void invert_mix_columns(unsigned char *block, aes_block_size_t block_size) {
-  // TODO: Implement me!
-  int cols;
-  switch (block_size) {
-    case AES_BLOCK_128:
-      cols = 4;
-      break;
-    case AES_BLOCK_256:
-      cols = 8;
-      break;
-    case AES_BLOCK_512:
-      cols = 16;
-      break;
-    default:
-      exit(1);
-  }
+  int cols = (int)block_size_to_bytes(block_size) / 4;
+  
   for (int c = 0; c < cols; c++) {
     unsigned char s0 = block[c * 4 + 0];
     unsigned char s1 = block[c * 4 + 1];
@@ -315,7 +261,6 @@ void invert_mix_columns(unsigned char *block, aes_block_size_t block_size) {
 void add_round_key(unsigned char *block, 
                    unsigned char *round_key,
                    aes_block_size_t block_size) {
-  // TODO: Implement me!
   size_t num_bytes = block_size_to_bytes(block_size);
   for (size_t i = 0; i < num_bytes; i++) {
     block[i] ^= round_key[i];
@@ -328,7 +273,6 @@ void add_round_key(unsigned char *block,
  * vector, containing the 11 round keys one after the other
  */
 unsigned char *expand_key(unsigned char *cipher_key, aes_block_size_t block_size) {
-  // TODO: Implement me!
   int key_words = 4;
   int total_num_of_words = 44;
 
@@ -373,7 +317,6 @@ unsigned char *expand_key(unsigned char *cipher_key, aes_block_size_t block_size
 unsigned char *aes_encrypt_block(unsigned char *plaintext,
                                  unsigned char *key,
                                  aes_block_size_t block_size) {
-  // TODO: Implement me!
   unsigned char *output = (unsigned char *)malloc(sizeof(unsigned char) * block_size_to_bytes(block_size));
   if (!output) {
     fprintf(stderr, "Memory allocation failed in aes_encrypt_block\n");
@@ -407,7 +350,6 @@ unsigned char *aes_encrypt_block(unsigned char *plaintext,
 unsigned char *aes_decrypt_block(unsigned char *ciphertext,
                                  unsigned char *key,
                                  aes_block_size_t block_size) {
-  // TODO: Implement me!
   unsigned char *output = (unsigned char *)malloc(sizeof(unsigned char) * block_size_to_bytes(block_size));
   if (!output) {
     fprintf(stderr, "Memory allocation failed in aes_decrypt_block\n");
