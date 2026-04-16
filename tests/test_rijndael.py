@@ -1,3 +1,28 @@
+"""
+test_rijndael.py - Test suite for the AES C library.
+
+Author: Karthik | Student No: A00046404
+
+This file verifies the correctness of the AES implementation in rijndael.c by
+loading the compiled shared library (rijndael.so) and comparing the outputs against
+a reference Python implementation of AES (from the aes.py module).
+
+Requirements:
+ - run make to compile the C code and generate rijndael.so before running this test suite.
+ - run the python file using the command: python tests/test_rijndael.py
+
+Test functions:
+ - test_add_round_key()        : verifies the byte-wise XOR with round keys.
+ - test_sub_bytes()            : verifies the byte substitution using the S-box.
+ - test_shift_rows()           : verifies the cyclic row shifts.
+ - test_mix_columns()          : verifies GF(2^8) mixing of columns.
+ - test_invert_sub_bytes()     : verifies the inverse byte substitution.
+ - test_invert_shift_rows()    : verifies the inverse row shifts.
+ - test_invert_mix_columns()   : verifies the inverse mixing of columns.
+ - test_encrypt_decrypt()      : full encrypt/decrypt vs the Python reference implementation.
+"""
+
+
 import ctypes, random, sys, os
 
 rijndael = ctypes.CDLL('./rijndael.so')

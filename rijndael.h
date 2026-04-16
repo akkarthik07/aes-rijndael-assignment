@@ -1,6 +1,17 @@
 /*
- * TODO: Add your name and student number here, along with
- *       a brief description of this code.
+ * rijndael.h - Header file for the Rijndael (AES) implementation.
+ * 
+ * Author: Karthik | Student No: A00046404
+ * 
+ * This header file exposes the types and functions needed to encrypt and decrypt 
+ * data using the AES block cipher.
+ * 
+ * Supported block sizes:
+ *  - AES_BLOCK_128: 128-bit block size (16 bytes)
+ *  - AES_BLOCK_256: 256-bit block size (32 bytes)
+ *  - AES_BLOCK_512: 512-bit block size (64 bytes)
+ * 
+ * Note: The AES algorithm is typically defined for a fixed block size of 128 bits.
  */
 
 #ifndef RIJNDAEL_H

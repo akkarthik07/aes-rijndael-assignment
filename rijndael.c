@@ -1,9 +1,14 @@
 /*
- * Author: Karthik - Student number: A00046404
- * Implementation of the AES (Rijndael) block cipher. Supports 128, 256 and 512-bit block sizes. 
+ * rijndael.c - AES (Rijndael) block cipher implementation
+ *
+ * Author: Karthik | Student No: A00046404
+ * 
+ * Implements the AES block cipher for 128-bit, 256-bit and 512-bit block sizes. 
  * Exposes two public functions via rijndael.h: 
  *  - aes_encrypt_block(): takes a plaintext block, a key and a block size, and returns the corresponding ciphertext block
  *  - aes_decrypt_block(): takes a ciphertext block, a key and a block size, and returns the corresponding plaintext block
+ * 
+ * All other functions in this file are internal helpers.
  */
 
 #include <stdio.h>
@@ -12,11 +17,11 @@
 
 #include "rijndael.h"
 
-/*----------------------------------------------------------------------------------
- * AES S-box
- * A fixed 256-byte lookup table used by sub_bytes().
- * Each byte in the input block is replaced by the corresponding byte in the S-box.
- *----------------------------------------------------------------------------------*/
+/*===================================================================================
+ * SECTION 1: Lookup tables and helper functions
+ *
+ * AES S-box and AES inverse S-box lookup tables (standard values of rijndael)
+ *===================================================================================*/
 
 static const unsigned char sbox[256] = {
   0x63, 0x7c, 0x77, 0x7b, 0xf2, 0x6b, 0x6f, 0xc5,
@@ -88,18 +93,26 @@ static const unsigned char inv_sbox[256] = {
   0xe1, 0x69, 0x14, 0x63, 0x55, 0x21, 0x0c, 0x7d
 };
 
+/* Round constants for key expansion */
 static const unsigned char round_constants[11] = {
   0x00, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36
 };
 
-/*----------------------------------------------------------------------------------
-  xtime(): multiply by 2 in GF(2^8). It shifts the input to the left by one bit, 
-  and if the most significant bit of the input is 1, it XORs the result with 0x1b.
- *----------------------------------------------------------------------------------*/
+/*===================================================================================
+ * SECTION 2: UTILITY FUNCTIONS
+ *===================================================================================*/
+
+/* 
+ * xtime: Multiplies a byte by 2 in GF(2^8).
+ * 
+ * Standard multiplication would overflow 8 bits, so AES uses modular
+ * arithmetic over finite field GF(2^8).
+ */
 static unsigned char xtime(unsigned char x) {
   return (x & 0x80) ? ((x << 1) ^ 0x1b) : (x << 1);
 }
 
+/* Convert block size to number of bytes */
 size_t block_size_to_bytes(aes_block_size_t block_size) {
   switch (block_size) {
   case AES_BLOCK_128:
@@ -114,6 +127,7 @@ size_t block_size_to_bytes(aes_block_size_t block_size) {
   }
 }
 
+/* Access a specific element in the block */
 unsigned char block_access(unsigned char *block, size_t row, size_t col, aes_block_size_t block_size) {
   int row_len;
   switch (block_size) {
@@ -134,6 +148,7 @@ unsigned char block_access(unsigned char *block, size_t row, size_t col, aes_blo
   return block[(row * row_len) + col];
 }
 
+/* message: Creates a simple message with a character appended */
 char *message(char n) {
   char *output = (char *)malloc(7);
   strcpy(output, "hello");
@@ -142,12 +157,14 @@ char *message(char n) {
   return output;
 }
 
-/*----------------------------------------------------------------------------------
- * Operations used when encrypting a block
- *----------------------------------------------------------------------------------/
+/*====================================================================================
+ * SECTION 3 - ENCRYPTION TRANSFORMATIONS
+ *
+ * These four functions implement the four AES round steps.
+ *===================================================================================*/
 
-/*
-  sub_bytes: Each byte in the input block is replaced by the corresponding byte in the S-box.
+/* 
+  sub_bytes: Substitutes each byte in the block with a corresponding byte from the S-box.
  */
 void sub_bytes(unsigned char *block, aes_block_size_t block_size) {
   size_t num_bytes = block_size_to_bytes(block_size);
@@ -156,10 +173,13 @@ void sub_bytes(unsigned char *block, aes_block_size_t block_size) {
   }
 }
 
-/*
-  shift_rows: shift each row of the block to the left by a certain amount, depending on the row number. 
-  The first row is not shifted, the second row is shifted by 1 byte, the third row is shifted by 2 bytes and the fourth row is shifted by 3 bytes. 
-  The shifting is circular, so bytes that are shifted out on the left are reintroduced on the right.
+/* 
+  shift_rows: Shifts the rows of the block cyclically to the left.
+  The number of positions each row is shifted depends on the row number:
+  - Row 0 is not shifted (stays the same)
+  - Row 1 is shifted by 1 position
+  - Row 2 is shifted by 2 positions
+  - Row 3 is shifted by 3 positions
  */
 void shift_rows(unsigned char *block, aes_block_size_t block_size) {
   int cols = (int)block_size_to_bytes(block_size) / 4;
@@ -196,13 +216,16 @@ void mix_columns(unsigned char *block, aes_block_size_t block_size) {
   }
 }
 
-/*-------------------------------------------------------------------------
- * Operations used when decrypting a block
- *-------------------------------------------------------------------------/
+/*====================================================================================
+ * SECTION 4 - DECRYPTION TRANSFORMATIONS
+ *
+ * These three functions implement the inverse of the AES round steps, used in decryption.
+ *===================================================================================*/
 
- /*
-  invert_sub_bytes: Each byte in the input block is replaced by the corresponding byte in the inverse S-box.
- */
+/* 
+  invert_sub_bytes: Reverts the sub_bytes transformation.
+  Each byte in the block is substituted with a corresponding byte from the inverse S-box.
+*/
 void invert_sub_bytes(unsigned char *block, aes_block_size_t block_size) {
   size_t num_bytes = block_size_to_bytes(block_size);
   for (size_t i = 0; i < num_bytes; i++) {
@@ -210,11 +233,9 @@ void invert_sub_bytes(unsigned char *block, aes_block_size_t block_size) {
   }
 }
 
-/*
-  invert_shift_rows: shift each row of the block to the right by a certain amount, depending on the row number. 
-  The first row is not shifted, the second row is shifted by 1 byte, the third row is shifted by 2 bytes and the fourth row is shifted by 3 bytes. 
-  The shifting is circular, so bytes that are shifted out on the right are reintroduced on the left.
-*/
+/* 
+  invert_shift_rows: Reverts the shift_rows transformation.
+ */
 void invert_shift_rows(unsigned char *block, aes_block_size_t block_size) {
   int cols = (int)block_size_to_bytes(block_size) / 4;
 
@@ -255,9 +276,11 @@ void invert_mix_columns(unsigned char *block, aes_block_size_t block_size) {
   }
 }
 
-/*
- * This operation is shared between encryption and decryption
- */
+/*====================================================================================
+ * SECTION 5 - SHARED ENCRYPTION/DECRYPTION TRANSFORMATIONS
+ *===================================================================================*/
+
+/* add_round_key: XORs the block with the round key. */
 void add_round_key(unsigned char *block, 
                    unsigned char *round_key,
                    aes_block_size_t block_size) {
@@ -267,8 +290,12 @@ void add_round_key(unsigned char *block,
   }
 }
 
+/*====================================================================================
+ * SECTION 6 - KEY EXPANSION
+ *===================================================================================*/
+
 /*
- * This function should expand the round key. Given an input,
+ * expand_key: This function should expand the round key. Given an input,
  * which is a single 128-bit key, it should return a 176-byte
  * vector, containing the 11 round keys one after the other
  */
@@ -310,10 +337,11 @@ unsigned char *expand_key(unsigned char *cipher_key, aes_block_size_t block_size
   return round_keys;
 }
 
-/*
- * The implementations of the functions declared in the
- * header file should go here
- */
+/*====================================================================================
+ * SECTION 7 - MAIN ENCRYPTION/DECRYPTION FUNCTIONS
+ *===================================================================================*/
+
+/* aes_encrypt_block: Encrypts a single block of plaintext using the AES algorithm. */
 unsigned char *aes_encrypt_block(unsigned char *plaintext,
                                  unsigned char *key,
                                  aes_block_size_t block_size) {
@@ -347,6 +375,7 @@ unsigned char *aes_encrypt_block(unsigned char *plaintext,
   return output;
 }
 
+/* aes_decrypt_block: Decrypts a single block of ciphertext using the AES algorithm. */
 unsigned char *aes_decrypt_block(unsigned char *ciphertext,
                                  unsigned char *key,
                                  aes_block_size_t block_size) {
